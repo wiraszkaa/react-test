@@ -52,6 +52,26 @@ function shuffleQuestions(questions: Question[]): Question[] {
   });
 }
 
+let quotaAlertShown = false;
+
+function safeSetLocalStorage(key: string, value: string) {
+  try {
+    localStorage.setItem(key, value);
+  } catch (e) {
+    if (
+      e instanceof DOMException &&
+      e.name === "QuotaExceededError" &&
+      !quotaAlertShown
+    ) {
+      quotaAlertShown = true;
+      alert(
+        "Nie można zapisać sesji: przekroczono limit pamięci przeglądarki."
+      );
+    }
+    // Optionally: log or handle other errors
+  }
+}
+
 const VisuallyHiddenInput = styled("input")({
   clip: "rect(0 0 0 0)",
   clipPath: "inset(50%)",
@@ -82,7 +102,41 @@ function App() {
   const [startIndex, setStartIndex] = useReactState<number>(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Load state from localStorage on mount
+  // Add a loading state for default questions
+  const [loadingDefault, setLoadingDefault] = useReactState(false);
+
+  // Helper to fetch and set default questions
+  const fetchDefaultQuestions = async () => {
+    setLoadingDefault(true);
+    try {
+      const res = await fetch("/questions/unique.json");
+      if (!res.ok) throw new Error("Błąd pobierania pytań");
+      const data = await res.json();
+      if (!Array.isArray(data) || data.length === 0) throw new Error();
+      const shuffled = shuffleQuestions(data);
+      setQuestions(shuffled);
+      setCurrent(0);
+      setSelected(null);
+      setShowAnswer(false);
+      setCorrectAnswers([]);
+      safeSetLocalStorage(
+        STORAGE_KEY,
+        JSON.stringify({
+          questions: shuffled,
+          current: 0,
+          selected: null,
+          showAnswer: false,
+          correctAnswers: [],
+        })
+      );
+    } catch {
+      alert("Nie udało się pobrać domyślnego testu.");
+    } finally {
+      setLoadingDefault(false);
+    }
+  };
+
+  // Load state from localStorage on mount, otherwise fetch default questions
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
@@ -93,16 +147,20 @@ function App() {
         setSelected(parsed.selected);
         setShowAnswer(parsed.showAnswer);
         setCorrectAnswers(parsed.correctAnswers);
+        return;
       } catch {
         // ignore corrupted state
       }
     }
+    // If no saved session, fetch default questions
+    fetchDefaultQuestions();
+    // eslint-disable-next-line
   }, []);
 
   // Save state to localStorage on every change
   useEffect(() => {
     if (questions) {
-      localStorage.setItem(
+      safeSetLocalStorage(
         STORAGE_KEY,
         JSON.stringify({
           questions,
@@ -154,7 +212,7 @@ function App() {
     setCorrectAnswers([]);
     setLoadDialogOpen(false);
     setFileQuestions(null);
-    localStorage.setItem(
+    safeSetLocalStorage(
       STORAGE_KEY,
       JSON.stringify({
         questions: shuffled,
@@ -192,7 +250,7 @@ function App() {
       setSelected(null);
       setShowAnswer(false);
       setCorrectAnswers([]);
-      localStorage.setItem(
+      safeSetLocalStorage(
         STORAGE_KEY,
         JSON.stringify({
           questions: shuffled,
@@ -217,6 +275,13 @@ function App() {
         </Button>
         <Button color="inherit" onClick={handleRestart} disabled={!questions}>
           Restartuj test
+        </Button>
+        <Button
+          color="inherit"
+          onClick={fetchDefaultQuestions}
+          disabled={loadingDefault}
+        >
+          Domyślny test
         </Button>
         <Button
           color="inherit"
