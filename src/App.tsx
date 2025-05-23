@@ -18,6 +18,7 @@ import {
 } from "@mui/material";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import { useRef, useState as useReactState } from "react";
+import TestViewer from "./TestViewer";
 
 type Question = {
   id: string;
@@ -66,6 +67,8 @@ const VisuallyHiddenInput = styled("input")({
 const STORAGE_KEY = "testownik-state-v1";
 
 function App() {
+  const [testViewer, setTestViewer] = useState(false);
+
   const [questions, setQuestions] = useState<Question[] | null>(null);
   const [current, setCurrent] = useState(0);
   const [selected, setSelected] = useState<number | null>(null);
@@ -94,9 +97,6 @@ function App() {
         // ignore corrupted state
       }
     }
-    // fetch("/questions.json")
-    //   .then((res) => res.json())
-    //   .then((data) => setQuestions(shuffleQuestions(data)));
   }, []);
 
   // Save state to localStorage on every change
@@ -212,6 +212,9 @@ function App() {
         <Typography variant="h6" sx={{ flexGrow: 1 }}>
           Testownik
         </Typography>
+        <Button color="inherit" onClick={() => setTestViewer((prev) => !prev)}>
+          {testViewer ? "Po kolei" : "Cały test"}
+        </Button>
         <Button color="inherit" onClick={handleRestart} disabled={!questions}>
           Restartuj test
         </Button>
@@ -313,6 +316,23 @@ function App() {
       </Box>
     ) : null;
 
+  if (testViewer && questions) {
+    return (
+      <Stack
+        width="100vw"
+        minHeight="100vh"
+        alignItems="center"
+        justifyContent="center"
+      >
+        {NavBar}
+        {LoadDialog}
+        <Stack flexGrow={1} justifyContent="center" alignItems="center">
+          <TestViewer questions={questions} />
+        </Stack>
+      </Stack>
+    );
+  }
+
   // --- Main Content ---
   if (!questions) {
     return (
@@ -374,7 +394,7 @@ function App() {
               {q.img && (
                 <Box mb={2} display="flex" justifyContent="center">
                   <img
-                    src={`data:image/jpeg;base64,${q.img}`}
+                    src={q.img}
                     alt="question"
                     style={{
                       maxWidth: "100%",
