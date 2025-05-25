@@ -268,13 +268,13 @@ function App() {
     <AppBar position="static">
       <Toolbar>
         <Typography variant="h6" sx={{ flexGrow: 1 }}>
-          Testownik
+          Test
         </Typography>
         <Button color="inherit" onClick={() => setTestViewer((prev) => !prev)}>
           {testViewer ? "Po kolei" : "Cały test"}
         </Button>
         <Button color="inherit" onClick={handleRestart} disabled={!questions}>
-          Restartuj test
+          Restart
         </Button>
         <Button
           color="inherit"
@@ -288,7 +288,7 @@ function App() {
           component="label"
           startIcon={<CloudUploadIcon />}
         >
-          Wczytaj pytania
+          Wczytaj
           <VisuallyHiddenInput
             type="file"
             accept=".json,application/json"
