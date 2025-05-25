@@ -423,6 +423,33 @@ function App() {
   const q = questions[current];
 
   if (current >= questions.length) {
+    const handleRetryIncorrect = () => {
+      // Filter questions that were answered incorrectly
+      const incorrectQuestions = questions.filter(
+        (_, idx) => !correctAnswers.includes(idx)
+      );
+      if (incorrectQuestions.length === 0) {
+        alert("Nie ma błędnych pytań do powtórki!");
+        return;
+      }
+      const shuffled = shuffleQuestions(incorrectQuestions);
+      setQuestions(shuffled);
+      setCurrent(0);
+      setSelected(null);
+      setShowAnswer(false);
+      setCorrectAnswers([]);
+      safeSetLocalStorage(
+        STORAGE_KEY,
+        JSON.stringify({
+          questions: shuffled,
+          current: 0,
+          selected: null,
+          showAnswer: false,
+          correctAnswers: [],
+        })
+      );
+    };
+
     return (
       <Stack
         width="100vw"
@@ -438,6 +465,14 @@ function App() {
             <Typography variant="h6" sx={{ mt: 2 }}>
               Twój wynik: {correctAnswers.length} / {questions.length}
             </Typography>
+            <Button
+              variant="contained"
+              sx={{ mt: 3 }}
+              onClick={handleRetryIncorrect}
+              disabled={correctAnswers.length === questions.length}
+            >
+              Powtórz błędne pytania
+            </Button>
           </Box>
         </Stack>
       </Stack>
