@@ -19,6 +19,8 @@ import {
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import { useRef, useState as useReactState } from "react";
 import TestViewer from "./TestViewer";
+import Menu from "@mui/material/Menu";
+import MenuItem from "@mui/material/MenuItem";
 
 type Question = {
   id: string;
@@ -103,13 +105,22 @@ function App() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Add a loading state for default questions
-  const [loadingDefault, setLoadingDefault] = useReactState(false);
+  const [loadingQuestions, setLoadingQuestions] = useReactState(false);
 
-  // Helper to fetch and set default questions
-  const fetchDefaultQuestions = async () => {
-    setLoadingDefault(true);
+  const [anchorEl, setAnchorEl] = useReactState<null | HTMLElement>(null);
+
+  const handleMenuClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+  };
+
+  // Helper to fetch and set questions
+  const fetchQuestions = async (url: string = "/tests/default.json") => {
+    setLoadingQuestions(true);
     try {
-      const res = await fetch("/questions/unique.json");
+      const res = await fetch(url);
       if (!res.ok) throw new Error("Błąd pobierania pytań");
       const data = await res.json();
       if (!Array.isArray(data) || data.length === 0) throw new Error();
@@ -130,10 +141,16 @@ function App() {
         })
       );
     } catch {
-      alert("Nie udało się pobrać domyślnego testu.");
+      alert("Nie udało się pobrać testu.");
     } finally {
-      setLoadingDefault(false);
+      setLoadingQuestions(false);
     }
+  };
+
+  const handleImportFromUrl = async () => {
+    const url = window.prompt("Podaj URL do pliku JSON z pytaniami:");
+    if (!url) return;
+    fetchQuestions(url);
   };
 
   // Load state from localStorage on mount, otherwise fetch default questions
@@ -153,7 +170,7 @@ function App() {
       }
     }
     // If no saved session, fetch default questions
-    fetchDefaultQuestions();
+    fetchQuestions();
     // eslint-disable-next-line
   }, []);
 
@@ -278,25 +295,41 @@ function App() {
         </Button>
         <Button
           color="inherit"
-          onClick={fetchDefaultQuestions}
-          disabled={loadingDefault}
+          onClick={() => fetchQuestions()}
+          disabled={loadingQuestions}
         >
           Domyślny test
         </Button>
+
         <Button
           color="inherit"
-          component="label"
           startIcon={<CloudUploadIcon />}
+          onClick={handleMenuClick}
         >
           Wczytaj
-          <VisuallyHiddenInput
-            type="file"
-            accept=".json,application/json"
-            onChange={handleFileChange}
-            style={{ display: "none" }}
-            ref={fileInputRef}
-          />
         </Button>
+        <Menu
+          anchorEl={anchorEl}
+          open={Boolean(anchorEl)}
+          onClose={handleMenuClose}
+        >
+          <MenuItem
+            onClick={() => {
+              handleMenuClose();
+              fileInputRef.current?.click();
+            }}
+          >
+            Z pliku
+          </MenuItem>
+          <MenuItem onClick={handleImportFromUrl}>Z URL</MenuItem>
+        </Menu>
+        <VisuallyHiddenInput
+          type="file"
+          accept=".json,application/json"
+          onChange={handleFileChange}
+          style={{ display: "none" }}
+          ref={fileInputRef}
+        />
       </Toolbar>
     </AppBar>
   );
